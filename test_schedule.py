@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, timedelta
 
-from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind
+from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind, BLOCKED, GREEN, RED, YELLOW, status
 
 ANCHOR = date(2026, 8, 12)  # среда, первая смена цикла
 
@@ -55,3 +55,48 @@ def test_правка_перекрывает_паттерн():
     assert kind(person, date(2026, 8, 12), overrides) == OFF
     assert kind(person, date(2026, 8, 14), overrides) == BUSY
     assert kind(person, date(2026, 8, 13), overrides) == DAY  # соседние дни не тронуты
+
+
+def test_ночная_смена_сегодня_это_красный():
+    person = p(mode=NIGHT)
+    assert status(person, date(2026, 8, 12), {}) == RED
+
+
+def test_завтра_дневная_смена_это_жёлтый():
+    person = p()
+    # 15-е — выходной, 16-е — дневная смена
+    assert status(person, date(2026, 8, 15), {}) == YELLOW
+
+
+def test_завтра_ночная_смена_это_зелёный():
+    person = p(mode=NIGHT)
+    # 15-е — выходной, 16-е — ночная смена: завтра спит днём, вечер свободен
+    assert status(person, date(2026, 8, 15), {}) == GREEN
+
+
+def test_после_дневной_смены_перед_выходным_зелёный():
+    person = p()
+    # 13-е — вторая дневная смена, 14-е — выходной
+    assert status(person, date(2026, 8, 13), {}) == GREEN
+
+
+def test_дневная_смена_и_завтра_дневная_это_жёлтый():
+    person = p()
+    assert status(person, date(2026, 8, 12), {}) == YELLOW
+
+
+def test_два_выходных_подряд_зелёный():
+    person = p()
+    assert status(person, date(2026, 8, 14), {}) == GREEN
+
+
+def test_занят_сегодня_блокирует_вечер():
+    person = p()
+    assert status(person, date(2026, 8, 14), {date(2026, 8, 14): BUSY}) == BLOCKED
+
+
+def test_занят_завтра_не_даёт_жёлтый_сегодня():
+    person = p()
+    # 16-е было бы дневной сменой и дало бы жёлтый на 15-е,
+    # но "занят" — это не работа, раннего подъёма из него не следует
+    assert status(person, date(2026, 8, 15), {date(2026, 8, 16): BUSY}) == GREEN

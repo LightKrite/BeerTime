@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import NamedTuple
 
 OFF = "off"
@@ -13,6 +13,11 @@ BUSY = "busy"
 ALTERNATE = "alternate"
 
 HORIZON_DAYS = 14
+
+GREEN = "green"    # гуляем
+YELLOW = "yellow"  # можно, но завтра рано вставать
+RED = "red"        # вечером на смену
+BLOCKED = "blocked"  # свои дела
 
 
 class Person(NamedTuple):
@@ -40,3 +45,15 @@ def kind(person: Person, d: date, overrides: dict[date, str]) -> str:
     if person.mode != ALTERNATE:
         return person.mode
     return DAY if (n // period) % 2 == 0 else NIGHT
+
+
+def status(person: Person, d: date, overrides: dict[date, str]) -> str:
+    """Можно ли человеку пить вечером дня d."""
+    today = kind(person, d, overrides)
+    if today == BUSY:
+        return BLOCKED
+    if today == NIGHT:
+        return RED
+    if kind(person, d + timedelta(days=1), overrides) == DAY:
+        return YELLOW
+    return GREEN
