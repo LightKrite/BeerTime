@@ -57,3 +57,25 @@ def status(person: Person, d: date, overrides: dict[date, str]) -> str:
     if kind(person, d + timedelta(days=1), overrides) == DAY:
         return YELLOW
     return GREEN
+
+
+OVERRIDE_CYCLE: tuple[str | None, ...] = (None, OFF, DAY, NIGHT, BUSY)
+
+
+def day_summary(statuses: list[str]) -> tuple[int, int, int]:
+    """Сколько в этот вечер зелёных, жёлтых и блокирующих (RED и BLOCKED)."""
+    return (
+        statuses.count(GREEN),
+        statuses.count(YELLOW),
+        sum(s in (RED, BLOCKED) for s in statuses),
+    )
+
+
+def rank(days: list[tuple[date, tuple[int, int, int]]]) -> list[tuple[date, tuple[int, int, int]]]:
+    """Лучшие вечера вперёд: сначала без блокирующих, затем больше зелёных, затем ближе дата."""
+    return sorted(days, key=lambda item: (item[1][2], -item[1][0], item[0]))
+
+
+def next_override(current: str | None) -> str | None:
+    """Следующее значение по кругу: паттерн → выходной → день → ночь → занят → паттерн."""
+    return OVERRIDE_CYCLE[(OVERRIDE_CYCLE.index(current) + 1) % len(OVERRIDE_CYCLE)]

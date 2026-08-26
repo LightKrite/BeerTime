@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind, BLOCKED, GREEN, RED, YELLOW, status
+from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind, BLOCKED, GREEN, RED, YELLOW, status, day_summary, next_override, rank
 
 ANCHOR = date(2026, 8, 12)  # среда, первая смена цикла
 
@@ -100,3 +100,38 @@ def test_занят_завтра_не_даёт_жёлтый_сегодня():
     # 16-е было бы дневной сменой и дало бы жёлтый на 15-е,
     # но "занят" — это не работа, раннего подъёма из него не следует
     assert status(person, date(2026, 8, 15), {date(2026, 8, 16): BUSY}) == GREEN
+
+
+def test_итог_по_дню_считает_три_числа():
+    statuses = [GREEN, GREEN, YELLOW, RED, BLOCKED, GREEN]
+    assert day_summary(statuses) == (3, 1, 2)
+
+
+def test_итог_по_пустому_дню():
+    assert day_summary([]) == (0, 0, 0)
+
+
+def test_рейтинг_ставит_дни_без_блокирующих_выше():
+    days = [
+        (date(2026, 8, 20), (5, 1, 0)),
+        (date(2026, 8, 18), (6, 0, 1)),
+        (date(2026, 8, 19), (4, 2, 0)),
+    ]
+    assert [d for d, _ in rank(days)] == [
+        date(2026, 8, 20),  # ноль блокирующих, 5 зелёных
+        date(2026, 8, 19),  # ноль блокирующих, 4 зелёных
+        date(2026, 8, 18),  # есть блокирующий — вниз, несмотря на 6 зелёных
+    ]
+
+
+def test_при_равных_счётчиках_выигрывает_ближняя_дата():
+    days = [(date(2026, 8, 25), (4, 1, 0)), (date(2026, 8, 19), (4, 1, 0))]
+    assert [d for d, _ in rank(days)] == [date(2026, 8, 19), date(2026, 8, 25)]
+
+
+def test_цикл_правки_дня():
+    assert next_override(None) == OFF
+    assert next_override(OFF) == DAY
+    assert next_override(DAY) == NIGHT
+    assert next_override(NIGHT) == BUSY
+    assert next_override(BUSY) is None  # сброс к паттерну
