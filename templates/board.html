@@ -24,23 +24,34 @@
     {% for row in matrix.rows %}
     <tr>
       <th class="sticky">{{ row.person.name }}</th>
-      {% for d in matrix.dates %}
-        {% with st = row.statuses[loop.index0] %}
-          {% include "cell.html" %}
-        {% endwith %}
+      {% for cell in row.cells %}
+        {% include "cell.html" %}
       {% endfor %}
     </tr>
     {% endfor %}
   </tbody>
   <tfoot>
     <tr>
-      <th class="sticky">итог</th>
-      {% for s in matrix.summaries %}
-      <td class="summary">{{ s[0] }}/{{ s[1] }}/{{ s[2] }}</td>
+      <th class="sticky">гуляют</th>
+      {% for a in matrix.available %}
+      <td class="available">{% for name in a.green %}{{ name }}<br>{% else %}—{% endfor %}</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="sticky">могут, завтра смена</th>
+      {% for a in matrix.available %}
+      <td class="available">{% for name in a.yellow %}{{ name }}<br>{% else %}—{% endfor %}</td>
       {% endfor %}
     </tr>
   </tfoot>
 </table>
 </div>
-<p class="hint">Тык по своей клетке: выходной → день → ночь → занят → обратно к графику.</p>
+
+<ul class="legend">
+  <li><span class="swatch green"></span> гуляем</li>
+  <li><span class="swatch yellow"></span> можно, но завтра рано вставать</li>
+  <li><span class="swatch red"></span> вечером на смену</li>
+  <li><span class="swatch blocked"></span> занят своими делами</li>
+</ul>
+<p class="hint">Своя строка редактируется выпадающим списком. Точка после текста — правка руками, а не график.</p>
 </div>

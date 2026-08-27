@@ -5,5 +5,16 @@ body { font-family: system-ui, sans-serif; margin: 1rem; }
 .sticky { position: sticky; left: 0; background: #fff; text-align: left; white-space: nowrap; }
 .best-col { background: #eaf7ea; }
 .cell.editable { cursor: pointer; }
-.summary { font-size: .8rem; color: #666; white-space: nowrap; }
 .hint { color: #666; font-size: .9rem; }
+.cell.green { background: #eaf7ea; }
+.cell.yellow { background: #fff8e1; }
+.cell.red { background: #fdecea; }
+.cell.blocked { background: #eceff1; }
+.cell select { width: 100%; border: none; background: transparent; font: inherit; }
+.available { font-size: .8rem; text-align: left; white-space: nowrap; }
+.legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem; font-size: .9rem; color: #444; }
+.legend .swatch { display: inline-block; width: .8rem; height: .8rem; border: 1px solid #ccc; vertical-align: middle; margin-right: .3rem; }
+.legend .swatch.green { background: #eaf7ea; }
+.legend .swatch.yellow { background: #fff8e1; }
+.legend .swatch.red { background: #fdecea; }
+.legend .swatch.blocked { background: #eceff1; }

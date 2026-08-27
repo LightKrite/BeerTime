@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from schedule import ALTERNATE, DAY, HORIZON_DAYS, NIGHT, Person, day_summary, next_override, rank, status
+from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF, Person, YELLOW, day_summary, kind, next_override, rank, status
 
 SECRET = os.environ.get("SECRET")
 if not SECRET:
@@ -125,18 +125,37 @@ def build_matrix() -> dict:
     rows = []
     for person in people:
         overrides = overrides_for(person.id)
-        rows.append(
+        cells = [
             {
-                "person": person,
-                "statuses": [status(person, d, overrides) for d in dates],
+                "date": d,
+                "kind": kind(person, d, overrides),
+                "status": status(person, d, overrides),
+                "manual": d in overrides,
+            }
+            for d in dates
+        ]
+        rows.append({"person": person, "cells": cells})
+
+    summaries = []
+    available = []
+    for i in range(len(dates)):
+        column = [row["cells"][i]["status"] for row in rows]
+        summaries.append(day_summary(column))
+        available.append(
+            {
+                "green": [row["person"].name for row in rows if row["cells"][i]["status"] == GREEN],
+                "yellow": [row["person"].name for row in rows if row["cells"][i]["status"] == YELLOW],
             }
         )
 
-    summaries = [
-        day_summary([row["statuses"][i] for row in rows]) for i in range(len(dates))
-    ]
     best = [d for d, s in rank(list(zip(dates, summaries))) if s[2] == 0][:3]
-    return {"dates": dates, "rows": rows, "summaries": summaries, "best": best}
+    return {
+        "dates": dates,
+        "rows": rows,
+        "summaries": summaries,
+        "available": available,
+        "best": best,
+    }
 
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -207,7 +226,12 @@ def join(secret: str, person_id: str = Form(""), name: str = Form("")):
 
 
 @app.post("/b/{secret}/cell/{iso_date}")
-def toggle_cell(request: Request, secret: str, iso_date: str):
+def set_cell(
+    request: Request,
+    secret: str,
+    iso_date: str,
+    override_kind: str = Form("", alias="kind"),
+):
     check_secret(secret)
     person = current_person(request)
     if person is None:
@@ -218,8 +242,10 @@ def toggle_cell(request: Request, secret: str, iso_date: str):
     except ValueError:
         raise HTTPException(status_code=400)
 
-    overrides = overrides_for(person.id)
-    set_override(person.id, d, next_override(overrides.get(d)))
+    if override_kind and override_kind not in {OFF, DAY, NIGHT, BUSY}:
+        raise HTTPException(status_code=400)
+
+    set_override(person.id, d, override_kind or None)
 
     return templates.TemplateResponse(
         request,

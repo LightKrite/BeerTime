@@ -9,7 +9,7 @@ os.environ.setdefault("TZ", "Europe/Moscow")
 import pytest
 
 import app as app_module
-from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF
+from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF, YELLOW
 
 
 @pytest.fixture(autouse=True)
@@ -80,17 +80,51 @@ def test_матрица_имеет_строку_на_человека_и_кол�
     assert len(matrix["dates"]) == HORIZON_DAYS
     assert matrix["dates"][0] == app_module.today()
     assert [row["person"].name for row in matrix["rows"]] == ["Егор", "Макс"]
-    assert all(len(row["statuses"]) == HORIZON_DAYS for row in matrix["rows"])
+    assert all(len(row["cells"]) == HORIZON_DAYS for row in matrix["rows"])
     assert len(matrix["summaries"]) == HORIZON_DAYS
+    assert len(matrix["available"]) == HORIZON_DAYS
 
 
-def test_итоги_совпадают_со_статусами_колонки():
+def test_клетка_несёт_род_дня_статус_и_признак_ручной_правки():
+    person_id = app_module.add_person("Егор")
+    d = app_module.today() + timedelta(days=1)
+    app_module.set_override(person_id, d, BUSY)
+    matrix = app_module.build_matrix()
+    idx = matrix["dates"].index(d)
+    cell = matrix["rows"][0]["cells"][idx]
+    assert cell == {"date": d, "kind": BUSY, "status": "blocked", "manual": True}
+
+    other_idx = 0 if idx != 0 else 1
+    other_cell = matrix["rows"][0]["cells"][other_idx]
+    assert other_cell["manual"] is False
+
+
+def test_итоги_совпадают_со_статусами_клеток_колонки():
     app_module.add_person("Егор")
     app_module.add_person("Макс")
     matrix = app_module.build_matrix()
     for i, summary in enumerate(matrix["summaries"]):
-        column = [row["statuses"][i] for row in matrix["rows"]]
+        column = [row["cells"][i]["status"] for row in matrix["rows"]]
         assert summary == app_module.day_summary(column)
+
+
+def test_доступные_совпадают_со_статусами_клеток_колонки():
+    a = app_module.add_person("Егор")
+    b = app_module.add_person("Макс")
+    d = app_module.today()
+    app_module.set_override(b, d, BUSY)  # Макс занят сегодня — не должен попасть ни в один список
+    matrix = app_module.build_matrix()
+    idx = matrix["dates"].index(d)
+    available = matrix["available"][idx]
+    column = [row["cells"][idx]["status"] for row in matrix["rows"]]
+    assert available["green"] == [
+        row["person"].name for row in matrix["rows"] if row["cells"][idx]["status"] == GREEN
+    ]
+    assert available["yellow"] == [
+        row["person"].name for row in matrix["rows"] if row["cells"][idx]["status"] == YELLOW
+    ]
+    assert "Макс" not in available["green"] and "Макс" not in available["yellow"]
+    assert column.count("blocked") + column.count("red") >= 1  # Макс где-то заблокирован
 
 
 def test_лучший_вечер_первым_в_списке_best():
@@ -107,6 +141,7 @@ def test_матрица_без_людей_не_падает():
     matrix = app_module.build_matrix()
     assert matrix["rows"] == []
     assert matrix["summaries"] == [(0, 0, 0)] * HORIZON_DAYS
+    assert matrix["available"] == [{"green": [], "yellow": []}] * HORIZON_DAYS
 
 
 from fastapi.testclient import TestClient
@@ -149,7 +184,7 @@ def test_вход_выбором_существующего_человека():
     assert len(app_module.list_people()) == 1  # дубликат не создан
 
 
-def test_занятая_клетка_рисуется_как_запрещающий_знак():
+def test_занятая_клетка_рисуется_как_выбранный_пункт_занят():
     person_id = app_module.add_person("Егор")
     app_module.set_override(person_id, app_module.today(), BUSY)
     c = client()
@@ -157,7 +192,32 @@ def test_занятая_клетка_рисуется_как_запрещающ�
     body = c.get("/b/test-secret/").text
     assert f'id="cell-{person_id}-{app_module.today().isoformat()}"' in body
     assert 'class="cell blocked editable"' in body
-    assert "⛔" in body
+    assert '<option value="busy" selected>занят</option>' in body
+
+
+def test_своя_клетка_без_правки_показывает_по_графику_выбранным():
+    person_id = app_module.add_person("Егор")
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    body = c.get("/b/test-secret/").text
+    assert '<option value="" selected>по графику</option>' in body
+
+
+def test_чужая_клетка_не_редактируется():
+    me = app_module.add_person("Егор")
+    other = app_module.add_person("Макс")
+    d = app_module.today()
+    app_module.set_override(other, d, NIGHT)
+    c = client()
+    c.cookies.set("bt_person", str(me))
+    body = c.get("/b/test-secret/").text
+
+    match = re.search(rf'<td id="cell-{other}-{d.isoformat()}".*?</td>', body, re.S)
+    assert match is not None
+    other_cell_html = match.group(0)
+    assert "editable" not in other_cell_html
+    assert "hx-post" not in other_cell_html
+    assert "ночная смена •" in other_cell_html
 
 
 def test_матрица_показывает_имена_и_даты():
@@ -169,23 +229,28 @@ def test_матрица_показывает_имена_и_даты():
     assert app_module.today().strftime("%d") in body
 
 
-def test_тык_по_клетке_крутит_правку_по_кругу():
+def test_выбор_в_списке_сохраняет_правку_а_сброс_убирает_её():
     person_id = app_module.add_person("Егор")
     d = app_module.today() + timedelta(days=1)
     c = client()
     c.cookies.set("bt_person", str(person_id))
     url = f"/b/test-secret/cell/{d.isoformat()}"
 
-    c.post(url)
-    assert app_module.overrides_for(person_id) == {d: OFF}
-    c.post(url)
-    assert app_module.overrides_for(person_id) == {d: DAY}
-    c.post(url)
+    c.post(url, data={"kind": NIGHT})
     assert app_module.overrides_for(person_id) == {d: NIGHT}
-    c.post(url)
-    assert app_module.overrides_for(person_id) == {d: BUSY}
-    c.post(url)
-    assert app_module.overrides_for(person_id) == {}  # сброс к графику
+
+    c.post(url, data={"kind": ""})
+    assert app_module.overrides_for(person_id) == {}
+
+
+def test_некорректное_значение_kind_отклоняется():
+    person_id = app_module.add_person("Егор")
+    d = app_module.today() + timedelta(days=1)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    response = c.post(f"/b/test-secret/cell/{d.isoformat()}", data={"kind": "не-род"})
+    assert response.status_code == 400
+    assert app_module.overrides_for(person_id) == {}
 
 
 def test_тык_возвращает_html_всей_доски():
@@ -198,14 +263,13 @@ def test_тык_возвращает_html_всей_доски():
     # перерисовывается вся доска целиком, а не одна клетка
     assert body.strip().startswith('<div id="board">')
     assert f"cell-{person_id}-{d.isoformat()}" in body
-    assert '<td class="summary">' in body
     # клетка должна остаться "тыкабельной": повторный POST на тот же адрес
     assert f'hx-post="{url}"' in body
     assert 'hx-target="#board"' in body
     assert "hx-swap=" in body
 
 
-def test_тык_до_занят_обновляет_итог_блокирующих_в_ответе():
+def test_выбор_занят_убирает_человека_из_списков_доступных_в_ответе():
     a = app_module.add_person("Егор")
     app_module.add_person("Макс")
     d = app_module.today() + timedelta(days=1)
@@ -214,16 +278,19 @@ def test_тык_до_занят_обновляет_итог_блокирующи
     url = f"/b/test-secret/cell/{d.isoformat()}"
 
     idx = app_module.build_matrix()["dates"].index(d)
-    assert app_module.build_matrix()["summaries"][idx] == (2, 0, 0)
+    assert "Егор" in app_module.build_matrix()["available"][idx]["green"]
 
-    response = None
-    for _ in range(4):  # None -> off -> день -> ночь -> занят
-        response = c.post(url)
+    response = c.post(url, data={"kind": BUSY})
 
-    assert app_module.build_matrix()["summaries"][idx] == (1, 0, 1)
+    assert "Егор" not in app_module.build_matrix()["available"][idx]["green"]
 
-    summaries_in_html = re.findall(r'<td class="summary">([\d/]+)</td>', response.text)
-    assert summaries_in_html[idx] == "1/0/1"
+    # доска перерисована целиком: колонка idx в ответе больше не содержит Егора
+    # ни в списке "гуляют", ни в "могут, завтра смена"
+    available_cells = re.findall(r'<td class="available">(.*?)</td>', response.text, re.S)
+    green_column = available_cells[idx]
+    yellow_column = available_cells[HORIZON_DAYS + idx]
+    assert "Егор" not in green_column
+    assert "Егор" not in yellow_column
 
 
 def test_без_куки_править_нельзя():

@@ -1,10 +1,18 @@
 {% set editable = row.person.id == me_id %}
-<td id="cell-{{ row.person.id }}-{{ d.isoformat() }}"
-    class="cell {{ st }}{% if editable %} editable{% endif %}"
-    {% if editable %}
-    hx-post="/b/{{ secret }}/cell/{{ d.isoformat() }}"
-    hx-target="#board"
-    hx-swap="outerHTML"
-    {% endif %}>
-  {{ {"green": "🟢", "yellow": "🟡", "red": "🔴", "blocked": "⛔"}[st] }}
+{% set kind_labels = {"off": "выходной", "day": "дневная смена", "night": "ночная смена", "busy": "занят"} %}
+<td id="cell-{{ row.person.id }}-{{ cell.date.isoformat() }}" class="cell {{ cell.status }}{% if editable %} editable{% endif %}">
+  {% if editable %}
+  <select name="kind"
+          hx-post="/b/{{ secret }}/cell/{{ cell.date.isoformat() }}"
+          hx-target="#board"
+          hx-swap="outerHTML"
+          hx-trigger="change">
+    <option value=""{% if not cell.manual %} selected{% endif %}>по графику</option>
+    {% for value, label in kind_labels.items() %}
+    <option value="{{ value }}"{% if cell.manual and cell.kind == value %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% else %}
+  {{ kind_labels[cell.kind] }}{% if cell.manual %} •{% endif %}
+  {% endif %}
 </td>
