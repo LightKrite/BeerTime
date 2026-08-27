@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from datetime import date
 
 os.environ.setdefault("SECRET", "test-secret")
@@ -50,3 +51,22 @@ def test_правки_не_протекают_между_людьми():
     b = app_module.add_person("Витя")
     app_module.set_override(a, date(2026, 8, 20), BUSY)
     assert app_module.overrides_for(b) == {}
+
+
+def test_connect_закрывает_соединение_после_with():
+    with app_module.connect() as conn:
+        conn.execute("SELECT 1")
+    with pytest.raises(sqlite3.ProgrammingError):
+        conn.execute("SELECT 1")
+
+
+def test_connect_откатывает_при_исключении():
+    person_id = app_module.add_person("Рома")
+    with pytest.raises(RuntimeError):
+        with app_module.connect() as conn:
+            conn.execute(
+                "UPDATE person SET name = ? WHERE id = ?", ("Изменено", person_id)
+            )
+            raise RuntimeError("бум")
+    person = app_module.list_people()[0]
+    assert person.name == "Рома"

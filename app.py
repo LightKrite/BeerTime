@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import sqlite3
+from collections.abc import Iterator
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -35,10 +37,18 @@ CREATE TABLE IF NOT EXISTS override (
 """
 
 
-def connect() -> sqlite3.Connection:
+@contextlib.contextmanager
+def connect() -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
