@@ -135,7 +135,7 @@ def build_matrix() -> dict:
     summaries = [
         day_summary([row["statuses"][i] for row in rows]) for i in range(len(dates))
     ]
-    best = [d for d, _ in rank(list(zip(dates, summaries)))[:3]]
+    best = [d for d, s in rank(list(zip(dates, summaries))) if s[2] == 0][:3]
     return {"dates": dates, "rows": rows, "summaries": summaries, "best": best}
 
 
@@ -144,7 +144,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.mount(f"/b/{SECRET}/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -200,7 +200,9 @@ def join(secret: str, person_id: str = Form(""), name: str = Form("")):
     else:
         return RedirectResponse(f"/b/{secret}/join", status_code=303)
     response = RedirectResponse(f"/b/{secret}/", status_code=303)
-    response.set_cookie("bt_person", str(chosen), max_age=60 * 60 * 24 * 365, httponly=True)
+    response.set_cookie(
+        "bt_person", str(chosen), max_age=60 * 60 * 24 * 365, httponly=True, secure=True
+    )
     return response
 
 
@@ -219,17 +221,10 @@ def toggle_cell(request: Request, secret: str, iso_date: str):
     overrides = overrides_for(person.id)
     set_override(person.id, d, next_override(overrides.get(d)))
 
-    overrides = overrides_for(person.id)
     return templates.TemplateResponse(
         request,
-        "cell.html",
-        {
-            "secret": secret,
-            "row": {"person": person},
-            "d": d,
-            "st": status(person, d, overrides),
-            "me_id": person.id,
-        },
+        "board.html",
+        {"secret": secret, "matrix": build_matrix(), "me_id": person.id},
     )
 
 
