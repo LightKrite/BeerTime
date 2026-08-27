@@ -23,7 +23,9 @@
     sudo apt update
     sudo apt install -y git python3-venv nginx certbot python3-certbot-nginx
 
-    sudo useradd -r -m -d /opt/beertime beertime
+    sudo useradd -r -d /opt/beertime beertime
+    sudo mkdir -p /opt/beertime
+    sudo chown beertime:beertime /opt/beertime
     sudo -u beertime git clone <repo> /opt/beertime
     cd /opt/beertime
     sudo -u beertime python -m venv .venv
