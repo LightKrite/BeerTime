@@ -192,15 +192,16 @@ def test_занятая_клетка_рисуется_как_выбранный_
     body = c.get("/b/test-secret/").text
     assert f'id="cell-{person_id}-{app_module.today().isoformat()}"' in body
     assert 'class="cell blocked editable"' in body
-    assert '<option value="busy" selected>занят</option>' in body
+    assert '<option value="busy" selected>занят •</option>' in body
 
 
-def test_своя_клетка_без_правки_показывает_по_графику_выбранным():
+def test_своя_клетка_без_правки_показывает_род_дня_выбранным():
     person_id = app_module.add_person("Егор")
     c = client()
     c.cookies.set("bt_person", str(person_id))
     body = c.get("/b/test-secret/").text
-    assert '<option value="" selected>по графику</option>' in body
+    assert '<option value="day" selected>дневная смена</option>' in body
+    assert '<option value="" selected>' not in body
 
 
 def test_чужая_клетка_не_редактируется():

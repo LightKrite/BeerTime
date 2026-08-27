@@ -7,9 +7,9 @@
           hx-target="#board"
           hx-swap="outerHTML"
           hx-trigger="change">
-    <option value=""{% if not cell.manual %} selected{% endif %}>по графику</option>
+    <option value="">по графику</option>
     {% for value, label in kind_labels.items() %}
-    <option value="{{ value }}"{% if cell.manual and cell.kind == value %} selected{% endif %}>{{ label }}</option>
+    <option value="{{ value }}"{% if cell.kind == value %} selected{% endif %}>{{ label }}{% if cell.manual and cell.kind == value %} •{% endif %}</option>
     {% endfor %}
   </select>
   {% else %}
