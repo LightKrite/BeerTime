@@ -29,8 +29,8 @@
     sudo -u beertime python -m venv .venv
     sudo -u beertime .venv/bin/pip install -r requirements.txt
     sudo -u beertime cp .env.example .env
-    sudo -u beertime sed -i "s/^SECRET=.*/SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')/" .env
     sudo chmod 600 .env
+    sudo -u beertime sed -i "s/^SECRET=.*/SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')/" .env
 
     sudo cp deploy/beertime.service /etc/systemd/system/
     sudo systemctl enable --now beertime
