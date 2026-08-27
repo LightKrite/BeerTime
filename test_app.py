@@ -106,3 +106,45 @@ def test_матрица_без_людей_не_падает():
     matrix = app_module.build_matrix()
     assert matrix["rows"] == []
     assert matrix["summaries"] == [(0, 0, 0)] * HORIZON_DAYS
+
+
+from fastapi.testclient import TestClient
+
+
+def client():
+    return TestClient(app_module.app)
+
+
+def test_неверный_секрет_даёт_404():
+    assert client().get("/b/wrong-secret/").status_code == 404
+
+
+def test_без_куки_редирект_на_вход():
+    response = client().get("/b/test-secret/", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/b/test-secret/join"
+
+
+def test_вход_новым_именем_ставит_куку():
+    c = client()
+    response = c.post("/b/test-secret/join", data={"person_id": "", "name": "Егор"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/b/test-secret/"
+    assert c.cookies["bt_person"] == str(app_module.list_people()[0].id)
+
+
+def test_вход_выбором_существующего_человека():
+    person_id = app_module.add_person("Макс")
+    c = client()
+    c.post("/b/test-secret/join", data={"person_id": str(person_id), "name": ""}, follow_redirects=False)
+    assert c.cookies["bt_person"] == str(person_id)
+    assert len(app_module.list_people()) == 1  # дубликат не создан
+
+
+def test_матрица_показывает_имена_и_даты():
+    person_id = app_module.add_person("Егор")
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    body = c.get("/b/test-secret/").text
+    assert "Егор" in body
+    assert app_module.today().strftime("%d") in body

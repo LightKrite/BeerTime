@@ -1,0 +1,9 @@
+body { font-family: system-ui, sans-serif; margin: 1rem; }
+.scroll { overflow-x: auto; }
+.matrix { border-collapse: collapse; }
+.matrix th, .matrix td { border: 1px solid #ddd; padding: .4rem .5rem; text-align: center; }
+.sticky { position: sticky; left: 0; background: #fff; text-align: left; white-space: nowrap; }
+.best-col { background: #eaf7ea; }
+.cell.editable { cursor: pointer; }
+.summary { font-size: .8rem; color: #666; white-space: nowrap; }
+.hint { color: #666; font-size: .9rem; }

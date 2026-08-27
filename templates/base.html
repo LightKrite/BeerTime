@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BeerTime</title>
+  <link rel="stylesheet" href="/b/{{ secret }}/static/style.css">
+  <script src="/b/{{ secret }}/static/htmx.min.js"></script>
+</head>
+<body>
+  <header><a href="/b/{{ secret }}/">BeerTime</a> · <a href="/b/{{ secret }}/me">мой график</a></header>
+  {% block content %}{% endblock %}
+</body>
+</html>
