@@ -1,0 +1,141 @@
+/* BeerTime design tokens — locked system, see design.md at project root.
+   OKLCH throughout. Every colour verified against its real-use background
+   at WCAG 2.1 (contrast ratios computed, not eyeballed — see design.md § Contrast). */
+
+:root {
+  /* surfaces — warm cream, tinted toward the amber anchor (hue 55-60) */
+  --color-paper:    oklch(97% 0.014 60);
+  --color-paper-2:  oklch(94% 0.017 58);
+  --color-paper-3:  oklch(90% 0.020 58);
+
+  /* text */
+  --color-ink:      oklch(21% 0.020 45);
+  --color-ink-2:    oklch(40% 0.018 45);
+  --color-muted:    oklch(50% 0.015 50);
+
+  /* structure */
+  --color-rule:     oklch(58% 0.020 55);  /* real boundaries — 3.9:1 on paper */
+  --color-rule-2:   oklch(84% 0.016 55);  /* decorative-only, no contrast floor */
+
+  /* accent — the one amber note. Reserve for focus, links, active state, primary
+     button fill. Never a background fill over more than a small element. */
+  --color-accent:       oklch(46% 0.17 55);
+  --color-accent-hover: oklch(50% 0.17 55);
+  --color-accent-ink:   var(--color-paper); /* accent fill always takes paper text — 6.9:1 */
+  --color-focus:        oklch(44% 0.21 55); /* 7.6:1 on paper; ring sits outside fills via outline-offset */
+
+  /* status — a separate semantic set from the brand accent. Backgrounds only;
+     ink text sits on all four (12.7-13.8:1, verified). */
+  --color-green:   oklch(91% 0.05 145);
+  --color-yellow:  oklch(91% 0.06 85);
+  --color-red:     oklch(90% 0.06 25);
+  --color-blocked: oklch(89% 0.018 55);
+
+  /* type */
+  --font-display: "Literata", Georgia, "Times New Roman", serif;
+  --font-body:    "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --text-xs:      0.8rem;
+  --text-sm:      0.9rem;
+  --text-base:    1rem;
+  --text-md:      1.125rem;
+  --text-lg:      1.375rem;
+  --text-xl:      1.75rem;
+  --text-display: clamp(1.75rem, 3vw + 1rem, 2.375rem);
+
+  /* space — 4pt scale */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs:  0.75rem;
+  --space-sm:  1rem;
+  --space-md:  1.5rem;
+  --space-lg:  2rem;
+  --space-xl:  3rem;
+  --space-2xl: 4.5rem;
+
+  /* radius */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-pill: 999px;
+
+  /* motion */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast:  120ms;
+  --dur-short: 200ms;
+
+  /* z-index */
+  --z-base:   1;
+  --z-raised: 10;
+  --z-sticky: 200;
+
+  /* overlays — modifiers only, never a palette entry on their own */
+  --overlay-ink-weak: oklch(21% 0.02 45 / 6%);
+}
+
+/* Self-hosted — the app makes zero requests beyond its own origin.
+   Cyrillic + Latin subsets only (this UI has no other scripts). */
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/literata-600-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/literata-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/geist-400-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/geist-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/geist-500-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/geist-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/geist-600-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/geist-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}

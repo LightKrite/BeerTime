@@ -1,18 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>График {{ person.name }}</h1>
-<form method="post" action="/b/{{ secret }}/me">
-  <label>Смен подряд <input type="number" name="cycle_on" min="1" max="14" value="{{ person.cycle_on }}"></label>
-  <label>Выходных подряд <input type="number" name="cycle_off" min="1" max="14" value="{{ person.cycle_off }}"></label>
-  <label>Дата первой смены цикла <input type="date" name="anchor" value="{{ person.anchor.isoformat() }}"></label>
-  <label>Режим
-    <select name="mode">
-      <option value="day" {% if person.mode == "day" %}selected{% endif %}>всегда дневные</option>
-      <option value="night" {% if person.mode == "night" %}selected{% endif %}>всегда ночные</option>
-      <option value="alternate" {% if person.mode == "alternate" %}selected{% endif %}>чередую день/ночь</option>
-    </select>
-  </label>
-  <button type="submit">Сохранить</button>
-</form>
-<p class="hint">Отдельные дни — подмены, отпуск, свои дела — правятся выпадающим списком в матрице на главной.</p>
+<div class="card">
+  <h1>График {{ person.name }}</h1>
+  <form method="post" action="/b/{{ secret }}/me">
+    <label class="field">
+      <span>Смен подряд</span>
+      <input type="number" name="cycle_on" min="1" max="14" value="{{ person.cycle_on }}">
+    </label>
+    <label class="field">
+      <span>Выходных подряд</span>
+      <input type="number" name="cycle_off" min="1" max="14" value="{{ person.cycle_off }}">
+    </label>
+    <label class="field">
+      <span>Дата первой смены цикла</span>
+      <input type="date" name="anchor" value="{{ person.anchor.isoformat() }}">
+    </label>
+    <label class="field">
+      <span>Режим</span>
+      <select name="mode">
+        <option value="day" {% if person.mode == "day" %}selected{% endif %}>всегда дневные</option>
+        <option value="night" {% if person.mode == "night" %}selected{% endif %}>всегда ночные</option>
+        <option value="alternate" {% if person.mode == "alternate" %}selected{% endif %}>чередую день/ночь</option>
+      </select>
+    </label>
+    <button type="submit" class="btn">Сохранить</button>
+  </form>
+  <p class="hint">Отдельные дни — подмены, отпуск, свои дела — правятся выпадающим списком в матрице на главной.</p>
+</div>
 {% endblock %}

@@ -1,12 +1,12 @@
 <div id="board">
-<p class="best">
+<div class="best-strip">
   {% if matrix.best %}
-  Ближайшие лучшие вечера:
-  {% for d in matrix.best %}<b>{{ d.strftime("%d.%m") }}</b>{% if not loop.last %}, {% endif %}{% endfor %}
+  <span class="best-strip__label">Лучшие вечера:</span>
+  {% for d in matrix.best %}<span class="badge">{{ d.strftime("%d.%m") }}</span>{% endfor %}
   {% else %}
-  Вечер без блокировок на ближайшие две недели не нашёлся.
+  <span class="best-strip__label">Вечер без блокировок на ближайшие две недели не нашёлся.</span>
   {% endif %}
-</p>
+</div>
 
 <div class="scroll">
 <table class="matrix">
@@ -34,13 +34,13 @@
     <tr>
       <th class="sticky">гуляют</th>
       {% for a in matrix.available %}
-      <td class="available">{% for name in a.green %}{{ name }}{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</td>
+      <td class="available">{% for name in a.green %}<span class="chip">{{ name }}</span>{% else %}<span class="none">—</span>{% endfor %}</td>
       {% endfor %}
     </tr>
     <tr>
       <th class="sticky">могут, завтра смена</th>
       {% for a in matrix.available %}
-      <td class="available">{% for name in a.yellow %}{{ name }}{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</td>
+      <td class="available">{% for name in a.yellow %}<span class="chip">{{ name }}</span>{% else %}<span class="none">—</span>{% endfor %}</td>
       {% endfor %}
     </tr>
   </tfoot>

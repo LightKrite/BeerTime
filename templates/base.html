@@ -4,11 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BeerTime</title>
+  <link rel="stylesheet" href="/b/{{ secret }}/static/tokens.css">
   <link rel="stylesheet" href="/b/{{ secret }}/static/style.css">
   <script src="/b/{{ secret }}/static/htmx.min.js"></script>
 </head>
 <body>
-  <header><a href="/b/{{ secret }}/">BeerTime</a> · <a href="/b/{{ secret }}/me">мой график</a></header>
-  {% block content %}{% endblock %}
+  <header class="site-header">
+    <a class="wordmark" href="/b/{{ secret }}/">
+      <svg class="mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path d="M6.5 4h11l-1.6 15.4a1.4 1.4 0 0 1-1.4 1.3H9.5a1.4 1.4 0 0 1-1.4-1.3L6.5 4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M7.3 8.4h9.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10.6" cy="13.6" r=".55" fill="currentColor"/>
+        <circle cx="13.8" cy="15.6" r=".45" fill="currentColor"/>
+      </svg>
+      BeerTime
+    </a>
+    <nav class="site-nav">
+      <a href="/b/{{ secret }}/">доска</a>
+      <a href="/b/{{ secret }}/me">мой график</a>
+    </nav>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
 </body>
 </html>
