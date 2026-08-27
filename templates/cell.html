@@ -1,0 +1,10 @@
+{% set editable = row.person.id == me_id %}
+<td id="cell-{{ row.person.id }}-{{ d.isoformat() }}"
+    class="cell {{ st }}{% if editable %} editable{% endif %}"
+    {% if editable %}
+    hx-post="/b/{{ secret }}/cell/{{ d.isoformat() }}"
+    hx-target="#board"
+    hx-swap="outerHTML"
+    {% endif %}>
+  {{ {"green": "🟢", "yellow": "🟡", "red": "🔴", "blocked": "⛔"}[st] }}
+</td>

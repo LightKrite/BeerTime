@@ -1,0 +1,13 @@
+[Unit]
+Description=BeerTime
+After=network.target
+
+[Service]
+User=beertime
+WorkingDirectory=/opt/beertime
+EnvironmentFile=/opt/beertime/.env
+ExecStart=/opt/beertime/.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8021
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
