@@ -202,7 +202,11 @@ def toggle_cell(request: Request, secret: str, iso_date: str):
     if person_id is None:
         raise HTTPException(status_code=403)
 
-    d = date.fromisoformat(iso_date)
+    try:
+        d = date.fromisoformat(iso_date)
+    except ValueError:
+        raise HTTPException(status_code=400)
+
     overrides = overrides_for(person_id)
     set_override(person_id, d, next_override(overrides.get(d)))
 

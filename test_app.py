@@ -174,12 +174,24 @@ def test_тык_возвращает_html_одной_клетки():
     d = app_module.today() + timedelta(days=1)
     c = client()
     c.cookies.set("bt_person", str(person_id))
-    body = c.post(f"/b/test-secret/cell/{d.isoformat()}").text
+    url = f"/b/test-secret/cell/{d.isoformat()}"
+    body = c.post(url).text
     assert body.strip().startswith("<td")
     assert f"cell-{person_id}-{d.isoformat()}" in body
+    # клетка должна остаться "тыкабельной": повторный POST на тот же адрес
+    assert f'hx-post="{url}"' in body
+    assert "hx-target=" in body
+    assert "hx-swap=" in body
 
 
 def test_без_куки_править_нельзя():
     app_module.add_person("Егор")
     d = app_module.today().isoformat()
     assert client().post(f"/b/test-secret/cell/{d}").status_code == 403
+
+
+def test_кривая_дата_в_адресе_даёт_400():
+    person_id = app_module.add_person("Егор")
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    assert c.post("/b/test-secret/cell/не-дата").status_code == 400
