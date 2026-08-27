@@ -6,10 +6,10 @@ import contextlib
 import os
 import sqlite3
 from collections.abc import Iterator
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from schedule import ALTERNATE, DAY, Person
+from schedule import ALTERNATE, DAY, HORIZON_DAYS, Person, day_summary, rank, status
 
 SECRET = os.environ.get("SECRET")
 if not SECRET:
@@ -114,3 +114,27 @@ def set_override(person_id: int, d: date, value: str | None) -> None:
                 "ON CONFLICT (person_id, date) DO UPDATE SET kind = excluded.kind",
                 (person_id, d.isoformat(), value),
             )
+
+
+def build_matrix() -> dict:
+    """Данные страницы: строки-люди, колонки-даты, итоги и лучшие вечера."""
+    start = today()
+    dates = [start + timedelta(days=i) for i in range(HORIZON_DAYS)]
+    people = list_people()
+
+    rows = []
+    for person in people:
+        overrides = overrides_for(person.id)
+        rows.append(
+            {
+                "person": person,
+                "statuses": [status(person, d, overrides) for d in dates],
+                "overrides": overrides,
+            }
+        )
+
+    summaries = [
+        day_summary([row["statuses"][i] for row in rows]) for i in range(len(dates))
+    ]
+    best = [d for d, _ in rank(list(zip(dates, summaries)))[:3]]
+    return {"dates": dates, "rows": rows, "summaries": summaries, "best": best}

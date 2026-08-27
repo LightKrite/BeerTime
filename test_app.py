@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 
 os.environ.setdefault("SECRET", "test-secret")
 os.environ.setdefault("TZ", "Europe/Moscow")
@@ -8,7 +8,7 @@ os.environ.setdefault("TZ", "Europe/Moscow")
 import pytest
 
 import app as app_module
-from schedule import ALTERNATE, BUSY, DAY, OFF
+from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF
 
 
 @pytest.fixture(autouse=True)
@@ -70,3 +70,39 @@ def test_connect_откатывает_при_исключении():
             raise RuntimeError("бум")
     person = app_module.list_people()[0]
     assert person.name == "Рома"
+
+
+def test_матрица_имеет_строку_на_человека_и_колонку_на_дату():
+    app_module.add_person("Егор")
+    app_module.add_person("Макс")
+    matrix = app_module.build_matrix()
+    assert len(matrix["dates"]) == HORIZON_DAYS
+    assert matrix["dates"][0] == app_module.today()
+    assert [row["person"].name for row in matrix["rows"]] == ["Егор", "Макс"]
+    assert all(len(row["statuses"]) == HORIZON_DAYS for row in matrix["rows"])
+    assert len(matrix["summaries"]) == HORIZON_DAYS
+
+
+def test_итоги_совпадают_со_статусами_колонки():
+    app_module.add_person("Егор")
+    app_module.add_person("Макс")
+    matrix = app_module.build_matrix()
+    for i, summary in enumerate(matrix["summaries"]):
+        column = [row["statuses"][i] for row in matrix["rows"]]
+        assert summary == app_module.day_summary(column)
+
+
+def test_лучший_вечер_первым_в_списке_best():
+    person_id = app_module.add_person("Егор")
+    # всё занято, кроме послезавтра — оно и должно оказаться лучшим
+    for offset in range(HORIZON_DAYS):
+        if offset != 2:
+            app_module.set_override(person_id, app_module.today() + timedelta(days=offset), BUSY)
+    matrix = app_module.build_matrix()
+    assert matrix["best"][0] == app_module.today() + timedelta(days=2)
+
+
+def test_матрица_без_людей_не_падает():
+    matrix = app_module.build_matrix()
+    assert matrix["rows"] == []
+    assert matrix["summaries"] == [(0, 0, 0)] * HORIZON_DAYS
