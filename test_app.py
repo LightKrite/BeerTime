@@ -195,3 +195,56 @@ def test_кривая_дата_в_адресе_даёт_400():
     c = client()
     c.cookies.set("bt_person", str(person_id))
     assert c.post("/b/test-secret/cell/не-дата").status_code == 400
+
+
+def test_вход_с_пустыми_person_id_и_именем_не_создаёт_человека():
+    c = client()
+    response = c.post("/b/test-secret/join", data={"person_id": "", "name": ""}, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/b/test-secret/join"
+    assert app_module.list_people() == []
+
+
+def test_протухшая_кука_редиректит_на_вход():
+    c = client()
+    c.cookies.set("bt_person", "999999")
+    response = c.get("/b/test-secret/", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/b/test-secret/join"
+
+
+def test_форма_настроек_показывает_текущие_значения():
+    person_id = app_module.add_person("Егор")
+    app_module.update_person(person_id, 3, 3, date(2026, 8, 12), ALTERNATE)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    body = c.get("/b/test-secret/me").text
+    assert 'value="3"' in body
+    assert "2026-08-12" in body
+
+
+def test_сохранение_настроек():
+    person_id = app_module.add_person("Егор")
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    response = c.post(
+        "/b/test-secret/me",
+        data={"cycle_on": "2", "cycle_off": "2", "anchor": "2026-08-12", "mode": ALTERNATE},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    person = app_module.list_people()[0]
+    assert person.mode == ALTERNATE
+    assert person.anchor == date(2026, 8, 12)
+
+
+def test_некорректный_цикл_отклоняется():
+    person_id = app_module.add_person("Егор")
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    response = c.post(
+        "/b/test-secret/me",
+        data={"cycle_on": "0", "cycle_off": "2", "anchor": "2026-08-12", "mode": DAY},
+    )
+    assert response.status_code == 400
+    assert app_module.list_people()[0].cycle_on == 2  # не сохранилось

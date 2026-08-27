@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from schedule import ALTERNATE, DAY, HORIZON_DAYS, Person, day_summary, next_override, rank, status
+from schedule import ALTERNATE, DAY, HORIZON_DAYS, NIGHT, Person, day_summary, next_override, rank, status
 
 SECRET = os.environ.get("SECRET")
 if not SECRET:
@@ -161,15 +161,24 @@ def me_id(request: Request) -> int | None:
     return int(raw) if raw and raw.isdigit() else None
 
 
+def current_person(request: Request) -> Person | None:
+    """Человек по куке bt_person, либо None — нет куки или человек удалён из базы."""
+    person_id = me_id(request)
+    if person_id is None:
+        return None
+    return next((p for p in list_people() if p.id == person_id), None)
+
+
 @app.get("/b/{secret}/")
 def index(request: Request, secret: str):
     check_secret(secret)
-    if me_id(request) is None:
+    person = current_person(request)
+    if person is None:
         return RedirectResponse(f"/b/{secret}/join", status_code=303)
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"secret": secret, "matrix": build_matrix(), "me_id": me_id(request)},
+        {"secret": secret, "matrix": build_matrix(), "me_id": person.id},
     )
 
 
@@ -198,8 +207,8 @@ def join(secret: str, person_id: str = Form(""), name: str = Form("")):
 @app.post("/b/{secret}/cell/{iso_date}")
 def toggle_cell(request: Request, secret: str, iso_date: str):
     check_secret(secret)
-    person_id = me_id(request)
-    if person_id is None:
+    person = current_person(request)
+    if person is None:
         raise HTTPException(status_code=403)
 
     try:
@@ -207,11 +216,10 @@ def toggle_cell(request: Request, secret: str, iso_date: str):
     except ValueError:
         raise HTTPException(status_code=400)
 
-    overrides = overrides_for(person_id)
-    set_override(person_id, d, next_override(overrides.get(d)))
+    overrides = overrides_for(person.id)
+    set_override(person.id, d, next_override(overrides.get(d)))
 
-    person = next(p for p in list_people() if p.id == person_id)
-    overrides = overrides_for(person_id)
+    overrides = overrides_for(person.id)
     return templates.TemplateResponse(
         request,
         "cell.html",
@@ -220,6 +228,34 @@ def toggle_cell(request: Request, secret: str, iso_date: str):
             "row": {"person": person},
             "d": d,
             "st": status(person, d, overrides),
-            "me_id": person_id,
+            "me_id": person.id,
         },
     )
+
+
+@app.get("/b/{secret}/me")
+def me_form(request: Request, secret: str):
+    check_secret(secret)
+    person = current_person(request)
+    if person is None:
+        return RedirectResponse(f"/b/{secret}/join", status_code=303)
+    return templates.TemplateResponse(request, "me.html", {"secret": secret, "person": person})
+
+
+@app.post("/b/{secret}/me")
+def me_save(
+    request: Request,
+    secret: str,
+    cycle_on: int = Form(...),
+    cycle_off: int = Form(...),
+    anchor: str = Form(...),
+    mode: str = Form(...),
+):
+    check_secret(secret)
+    person = current_person(request)
+    if person is None:
+        raise HTTPException(status_code=403)
+    if cycle_on < 1 or cycle_off < 1 or mode not in (DAY, NIGHT, ALTERNATE):
+        raise HTTPException(status_code=400, detail="Некорректный график")
+    update_person(person.id, cycle_on, cycle_off, date.fromisoformat(anchor), mode)
+    return RedirectResponse(f"/b/{secret}/", status_code=303)
