@@ -1,0 +1,46 @@
+<div id="board">
+<p class="best">
+  {% if matrix.best %}
+  Ближайшие лучшие вечера:
+  {% for d in matrix.best %}<b>{{ d.strftime("%d.%m") }}</b>{% if not loop.last %}, {% endif %}{% endfor %}
+  {% else %}
+  Вечер без блокировок на ближайшие две недели не нашёлся.
+  {% endif %}
+</p>
+
+<div class="scroll">
+<table class="matrix">
+  <thead>
+    <tr>
+      <th class="sticky">кто</th>
+      {% for d in matrix.dates %}
+      <th class="{% if d in matrix.best %}best-col{% endif %}">
+        {{ ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][d.weekday()] }}<br>{{ d.strftime("%d.%m") }}
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in matrix.rows %}
+    <tr>
+      <th class="sticky">{{ row.person.name }}</th>
+      {% for d in matrix.dates %}
+        {% with st = row.statuses[loop.index0] %}
+          {% include "cell.html" %}
+        {% endwith %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <th class="sticky">итог</th>
+      {% for s in matrix.summaries %}
+      <td class="summary">{{ s[0] }}/{{ s[1] }}/{{ s[2] }}</td>
+      {% endfor %}
+    </tr>
+  </tfoot>
+</table>
+</div>
+<p class="hint">Тык по своей клетке: выходной → день → ночь → занят → обратно к графику.</p>
+</div>

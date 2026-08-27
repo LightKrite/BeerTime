@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 from datetime import date, timedelta
 
@@ -119,6 +120,13 @@ def test_неверный_секрет_даёт_404():
     assert client().get("/b/wrong-secret/").status_code == 404
 
 
+def test_swagger_и_openapi_отключены():
+    c = client()
+    assert c.get("/docs").status_code == 404
+    assert c.get("/redoc").status_code == 404
+    assert c.get("/openapi.json").status_code == 404
+
+
 def test_без_куки_редирект_на_вход():
     response = client().get("/b/test-secret/", follow_redirects=False)
     assert response.status_code == 303
@@ -139,6 +147,17 @@ def test_вход_выбором_существующего_человека():
     c.post("/b/test-secret/join", data={"person_id": str(person_id), "name": ""}, follow_redirects=False)
     assert c.cookies["bt_person"] == str(person_id)
     assert len(app_module.list_people()) == 1  # дубликат не создан
+
+
+def test_занятая_клетка_рисуется_как_запрещающий_знак():
+    person_id = app_module.add_person("Егор")
+    app_module.set_override(person_id, app_module.today(), BUSY)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    body = c.get("/b/test-secret/").text
+    assert f'id="cell-{person_id}-{app_module.today().isoformat()}"' in body
+    assert 'class="cell blocked editable"' in body
+    assert "⛔" in body
 
 
 def test_матрица_показывает_имена_и_даты():
@@ -169,19 +188,42 @@ def test_тык_по_клетке_крутит_правку_по_кругу():
     assert app_module.overrides_for(person_id) == {}  # сброс к графику
 
 
-def test_тык_возвращает_html_одной_клетки():
+def test_тык_возвращает_html_всей_доски():
     person_id = app_module.add_person("Егор")
     d = app_module.today() + timedelta(days=1)
     c = client()
     c.cookies.set("bt_person", str(person_id))
     url = f"/b/test-secret/cell/{d.isoformat()}"
     body = c.post(url).text
-    assert body.strip().startswith("<td")
+    # перерисовывается вся доска целиком, а не одна клетка
+    assert body.strip().startswith('<div id="board">')
     assert f"cell-{person_id}-{d.isoformat()}" in body
+    assert '<td class="summary">' in body
     # клетка должна остаться "тыкабельной": повторный POST на тот же адрес
     assert f'hx-post="{url}"' in body
-    assert "hx-target=" in body
+    assert 'hx-target="#board"' in body
     assert "hx-swap=" in body
+
+
+def test_тык_до_занят_обновляет_итог_блокирующих_в_ответе():
+    a = app_module.add_person("Егор")
+    app_module.add_person("Макс")
+    d = app_module.today() + timedelta(days=1)
+    c = client()
+    c.cookies.set("bt_person", str(a))
+    url = f"/b/test-secret/cell/{d.isoformat()}"
+
+    idx = app_module.build_matrix()["dates"].index(d)
+    assert app_module.build_matrix()["summaries"][idx] == (2, 0, 0)
+
+    response = None
+    for _ in range(4):  # None -> off -> день -> ночь -> занят
+        response = c.post(url)
+
+    assert app_module.build_matrix()["summaries"][idx] == (1, 0, 1)
+
+    summaries_in_html = re.findall(r'<td class="summary">([\d/]+)</td>', response.text)
+    assert summaries_in_html[idx] == "1/0/1"
 
 
 def test_без_куки_править_нельзя():

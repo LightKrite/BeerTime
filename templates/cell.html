@@ -3,7 +3,7 @@
     class="cell {{ st }}{% if editable %} editable{% endif %}"
     {% if editable %}
     hx-post="/b/{{ secret }}/cell/{{ d.isoformat() }}"
-    hx-target="this"
+    hx-target="#board"
     hx-swap="outerHTML"
     {% endif %}>
   {{ {"green": "🟢", "yellow": "🟡", "red": "🔴", "blocked": "⛔"}[st] }}
