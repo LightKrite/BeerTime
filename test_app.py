@@ -148,3 +148,38 @@ def test_матрица_показывает_имена_и_даты():
     body = c.get("/b/test-secret/").text
     assert "Егор" in body
     assert app_module.today().strftime("%d") in body
+
+
+def test_тык_по_клетке_крутит_правку_по_кругу():
+    person_id = app_module.add_person("Егор")
+    d = app_module.today() + timedelta(days=1)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    url = f"/b/test-secret/cell/{d.isoformat()}"
+
+    c.post(url)
+    assert app_module.overrides_for(person_id) == {d: OFF}
+    c.post(url)
+    assert app_module.overrides_for(person_id) == {d: DAY}
+    c.post(url)
+    assert app_module.overrides_for(person_id) == {d: NIGHT}
+    c.post(url)
+    assert app_module.overrides_for(person_id) == {d: BUSY}
+    c.post(url)
+    assert app_module.overrides_for(person_id) == {}  # сброс к графику
+
+
+def test_тык_возвращает_html_одной_клетки():
+    person_id = app_module.add_person("Егор")
+    d = app_module.today() + timedelta(days=1)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    body = c.post(f"/b/test-secret/cell/{d.isoformat()}").text
+    assert body.strip().startswith("<td")
+    assert f"cell-{person_id}-{d.isoformat()}" in body
+
+
+def test_без_куки_править_нельзя():
+    app_module.add_person("Егор")
+    d = app_module.today().isoformat()
+    assert client().post(f"/b/test-secret/cell/{d}").status_code == 403

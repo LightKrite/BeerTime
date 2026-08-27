@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from schedule import ALTERNATE, DAY, HORIZON_DAYS, Person, day_summary, rank, status
+from schedule import ALTERNATE, DAY, HORIZON_DAYS, Person, day_summary, next_override, rank, status
 
 SECRET = os.environ.get("SECRET")
 if not SECRET:
@@ -193,3 +193,29 @@ def join(secret: str, person_id: str = Form(""), name: str = Form("")):
     response = RedirectResponse(f"/b/{secret}/", status_code=303)
     response.set_cookie("bt_person", str(chosen), max_age=60 * 60 * 24 * 365, httponly=True)
     return response
+
+
+@app.post("/b/{secret}/cell/{iso_date}")
+def toggle_cell(request: Request, secret: str, iso_date: str):
+    check_secret(secret)
+    person_id = me_id(request)
+    if person_id is None:
+        raise HTTPException(status_code=403)
+
+    d = date.fromisoformat(iso_date)
+    overrides = overrides_for(person_id)
+    set_override(person_id, d, next_override(overrides.get(d)))
+
+    person = next(p for p in list_people() if p.id == person_id)
+    overrides = overrides_for(person_id)
+    return templates.TemplateResponse(
+        request,
+        "cell.html",
+        {
+            "secret": secret,
+            "row": {"person": person},
+            "d": d,
+            "st": status(person, d, overrides),
+            "me_id": person_id,
+        },
+    )
