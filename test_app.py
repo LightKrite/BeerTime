@@ -215,12 +215,16 @@ def test_протухшая_кука_редиректит_на_вход():
 
 def test_форма_настроек_показывает_текущие_значения():
     person_id = app_module.add_person("Егор")
-    app_module.update_person(person_id, 3, 3, date(2026, 8, 12), ALTERNATE)
+    app_module.update_person(person_id, 4, 6, date(2026, 8, 12), ALTERNATE)
     c = client()
     c.cookies.set("bt_person", str(person_id))
     body = c.get("/b/test-secret/me").text
-    assert 'value="3"' in body
+    assert 'name="cycle_on" min="1" max="14" value="4"' in body
+    assert 'name="cycle_off" min="1" max="14" value="6"' in body
     assert "2026-08-12" in body
+    assert 'value="alternate" selected' in body
+    assert 'value="day" selected' not in body
+    assert 'value="night" selected' not in body
 
 
 def test_сохранение_настроек():
@@ -248,3 +252,18 @@ def test_некорректный_цикл_отклоняется():
     )
     assert response.status_code == 400
     assert app_module.list_people()[0].cycle_on == 2  # не сохранилось
+
+
+def test_кривая_дата_якоря_отклоняется():
+    person_id = app_module.add_person("Егор")
+    app_module.update_person(person_id, 2, 2, date(2026, 8, 12), DAY)
+    c = client()
+    c.cookies.set("bt_person", str(person_id))
+    response = c.post(
+        "/b/test-secret/me",
+        data={"cycle_on": "3", "cycle_off": "3", "anchor": "не-дата", "mode": ALTERNATE},
+    )
+    assert response.status_code == 400
+    person = app_module.list_people()[0]
+    assert person.anchor == date(2026, 8, 12)  # не сохранилось
+    assert person.mode == DAY  # не сохранилось

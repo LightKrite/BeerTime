@@ -257,5 +257,9 @@ def me_save(
         raise HTTPException(status_code=403)
     if cycle_on < 1 or cycle_off < 1 or mode not in (DAY, NIGHT, ALTERNATE):
         raise HTTPException(status_code=400, detail="Некорректный график")
-    update_person(person.id, cycle_on, cycle_off, date.fromisoformat(anchor), mode)
+    try:
+        anchor_date = date.fromisoformat(anchor)
+    except ValueError:
+        raise HTTPException(status_code=400)
+    update_person(person.id, cycle_on, cycle_off, anchor_date, mode)
     return RedirectResponse(f"/b/{secret}/", status_code=303)
