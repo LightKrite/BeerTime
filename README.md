@@ -18,15 +18,24 @@
 
 ## Развёртывание на VPS
 
+Пример для чистого сервера на Debian/Ubuntu.
+
+    sudo apt update
+    sudo apt install -y git python3-venv nginx certbot python3-certbot-nginx
+
     sudo useradd -r -m -d /opt/beertime beertime
     sudo -u beertime git clone <repo> /opt/beertime
     cd /opt/beertime
     sudo -u beertime python -m venv .venv
     sudo -u beertime .venv/bin/pip install -r requirements.txt
-    sudo -u beertime cp .env.example .env   # вписать настоящий SECRET
+    sudo -u beertime cp .env.example .env
+    sudo -u beertime sed -i "s/^SECRET=.*/SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')/" .env
+    sudo chmod 600 .env
 
     sudo cp deploy/beertime.service /etc/systemd/system/
     sudo systemctl enable --now beertime
+
+    sudo certbot certonly --nginx -d beertime.example.com   # домен уже должен указывать на этот сервер
 
     sudo cp deploy/nginx.conf /etc/nginx/sites-available/beertime
     sudo ln -s /etc/nginx/sites-available/beertime /etc/nginx/sites-enabled/
@@ -36,4 +45,4 @@
 
 Обновление: `git pull && sudo systemctl restart beertime`.
 
-Перед использованием `deploy/nginx.conf` замените в нём placeholder `beertime.example.com` (в `server_name` и в путях `ssl_certificate`/`ssl_certificate_key`) на настоящий домен и выпустите для него сертификат Let's Encrypt — иначе nginx откажется стартовать. В команде `git clone <repo>` подставьте настоящий URL репозитория.
+Перед использованием замените `beertime.example.com` — в `deploy/nginx.conf` (`server_name` и оба пути сертификата) и в команде `certbot` — на настоящий домен, а `<repo>` в `git clone` — на настоящий URL репозитория.
