@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF, Person, YELLOW, day_summary, kind, next_override, rank, status
+from schedule import ALTERNATE, BUSY, DAY, GREEN, HORIZON_DAYS, NIGHT, OFF, Person, YELLOW, day_summary, kind, rank, status
 
 SECRET = os.environ.get("SECRET")
 if not SECRET:

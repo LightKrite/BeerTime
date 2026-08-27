@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind, BLOCKED, GREEN, RED, YELLOW, status, day_summary, next_override, rank
+from schedule import ALTERNATE, BUSY, DAY, NIGHT, OFF, Person, kind, BLOCKED, GREEN, RED, YELLOW, status, day_summary, rank
 
 ANCHOR = date(2026, 8, 12)  # среда, первая смена цикла
 
@@ -127,11 +127,3 @@ def test_рейтинг_ставит_дни_без_блокирующих_выш
 def test_при_равных_счётчиках_выигрывает_ближняя_дата():
     days = [(date(2026, 8, 25), (4, 1, 0)), (date(2026, 8, 19), (4, 1, 0))]
     assert [d for d, _ in rank(days)] == [date(2026, 8, 19), date(2026, 8, 25)]
-
-
-def test_цикл_правки_дня():
-    assert next_override(None) == OFF
-    assert next_override(OFF) == DAY
-    assert next_override(DAY) == NIGHT
-    assert next_override(NIGHT) == BUSY
-    assert next_override(BUSY) is None  # сброс к паттерну
