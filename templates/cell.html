@@ -3,6 +3,8 @@
 <td id="cell-{{ row.person.id }}-{{ cell.date.isoformat() }}" class="cell {{ cell.status }}{% if editable %} editable{% endif %}">
   {% if editable %}
   <select name="kind"
+          id="cell-{{ row.person.id }}-{{ cell.date.isoformat() }}"
+          aria-label="{{ row.person.name }}, {{ cell.date.strftime('%d.%m') }}"
           hx-post="/b/{{ secret }}/cell/{{ cell.date.isoformat() }}"
           hx-target="#board"
           hx-swap="outerHTML"

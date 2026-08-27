@@ -34,13 +34,13 @@
     <tr>
       <th class="sticky">гуляют</th>
       {% for a in matrix.available %}
-      <td class="available">{% for name in a.green %}{{ name }}<br>{% else %}—{% endfor %}</td>
+      <td class="available">{% for name in a.green %}{{ name }}{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</td>
       {% endfor %}
     </tr>
     <tr>
       <th class="sticky">могут, завтра смена</th>
       {% for a in matrix.available %}
-      <td class="available">{% for name in a.yellow %}{{ name }}<br>{% else %}—{% endfor %}</td>
+      <td class="available">{% for name in a.yellow %}{{ name }}{% if not loop.last %}<br>{% endif %}{% else %}—{% endfor %}</td>
       {% endfor %}
     </tr>
   </tfoot>

@@ -6,6 +6,7 @@
 
     python -m venv .venv && source .venv/bin/activate
     pip install -r requirements.txt
+    .venv/bin/python seed.py
     cp .env.example .env   # и вписать свой SECRET
     set -a && source .env && set +a
     uvicorn app:app --reload
@@ -33,6 +34,8 @@
     sudo -u beertime cp .env.example .env
     sudo chmod 600 .env
     sudo -u beertime sed -i "s/^SECRET=.*/SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')/" .env
+
+    sudo -u beertime .venv/bin/python seed.py
 
     sudo cp deploy/beertime.service /etc/systemd/system/
     sudo systemctl enable --now beertime
